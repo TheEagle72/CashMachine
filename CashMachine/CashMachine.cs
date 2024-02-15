@@ -35,12 +35,7 @@
 
         private readonly IDictionary<CashNominal, uint> _maxStoredCash = new Dictionary<CashNominal, uint>(); // read only  property not working either :(
 
-        public uint TotalStoredCash => SumOfMoneyStack(StoredCash);
-
-        private static uint SumOfMoneyStack(IDictionary<CashNominal, uint> stack)
-        {
-            return stack.Aggregate(0u, (u, pair) => u + (pair.Value * (uint)pair.Key));
-        }
+        public uint TotalStoredCash => TransactionTotal(StoredCash);
         public CashMachine(Dictionary<CashNominal, uint> capacities)
         {
             foreach (var (nominal, capacity) in capacities)
@@ -165,7 +160,7 @@
             return true;
         }
 
-        public static uint TransactionTotal(Dictionary<CashNominal, uint> transaction)
+        public static uint TransactionTotal(IDictionary<CashNominal, uint> transaction)
         {
             return transaction.Aggregate(0u, (u, nominalCount) => u + (uint)nominalCount.Key * nominalCount.Value);
         }
