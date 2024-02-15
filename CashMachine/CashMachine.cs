@@ -50,74 +50,75 @@
             }
         }
 
-        private void TryUseSmallerBills(Dictionary<CashNominal, uint> transaction)
-        {
-            var stateAfterTransaction = new Dictionary<CashNominal, uint>(StoredCash);
-            foreach (var (nominal, count) in transaction)
-            {
-                stateAfterTransaction[nominal] -= count;
-            }
-
-            var nominals = Enum.GetValues(typeof(CashNominal)).Cast<uint>().Reverse().ToList();
-            for (int i = 0; i < nominals.Count-1; i++)
-            {
-                var nominalNumberValue = nominals[i];
-                var nominal = (CashNominal)nominalNumberValue;
-                
-                    for (int j = i + 1; j < nominals.Count; j++)
-                    {
-                        if (transaction[nominal] == 0)
-                        {
-                            break;
-                        }
-                        
-                        var lowerNominalNumberValue = nominals[j];
-                        var lowerNominal = (CashNominal)lowerNominalNumberValue;
-                        var countToReplace = nominalNumberValue / lowerNominalNumberValue;
-                        while (transaction[nominal] > 0 &&
-                               stateAfterTransaction[lowerNominal] >= nominalNumberValue / lowerNominalNumberValue &&
-                               countToReplace * lowerNominalNumberValue == nominalNumberValue)
-                        {
-                            transaction[nominal]--;
-                            transaction[lowerNominal] += countToReplace;
-
-                            stateAfterTransaction[nominal]++;
-                            stateAfterTransaction[lowerNominal] -= countToReplace;
-                        }
-                    }
-            }
-        }
         public (bool, Dictionary<CashNominal, uint>?) Withdraw(uint requestedAmount, bool useSmallerBills = false)
         {
-            if (requestedAmount == 0) { return (false, null);}
-            var transaction = new Dictionary<CashNominal, uint>();
-            var currentCopyOfAmountOfMoney = requestedAmount;
-            foreach (var (nominal,count) in StoredCash.Reverse())
+            if (requestedAmount == 0) { return (false, null); }
+
+            //Dynamic programming. Knapsack problem.
+            //Naive implementation - we got a lot of extra same numbers
+            //todo replace with dict with counts
+            var sums = new Dictionary<uint, uint>();
+            var aList = new List<CashNominal>();
+            
+            foreach (var (nominal,count) in useSmallerBills ? StoredCash : StoredCash.Reverse())
             {
-                var needToAdd = (uint)Math.Floor((double)currentCopyOfAmountOfMoney / (uint)nominal);
-                var possibleToAdd = Math.Min(needToAdd, count);
-                transaction[nominal] = possibleToAdd;
-                currentCopyOfAmountOfMoney -= possibleToAdd * (uint)nominal;
+                for (int i = 0; i < count; i++)
+                {
+                    aList.Add(nominal);
+                }
             }
 
-            //check transaction total sum:
-            if (SumOfMoneyStack(transaction) != requestedAmount)
+            sums.Add(0, 0);
+            foreach (uint value in aList)
+            {
+                var newSums = new Dictionary<uint, uint>();
+                foreach (var sum in sums.Keys)
+                {
+                    var newSum = sum + value;
+
+                    if (newSum > requestedAmount)
+                    {
+                        continue;
+                    }
+
+                    if (!sums.ContainsKey(newSum))
+                    {
+                        newSums[newSum] = value;
+                    }
+                }
+
+                foreach (var (key, val) in newSums)
+                {
+                    sums.Add(key, val);
+                }
+
+                if (sums.ContainsKey(requestedAmount))
+                {
+                    break;
+                }
+            }
+
+            if (!sums.ContainsKey(requestedAmount))
             {
                 return (false, null);
             }
 
-            //We verified that it is possible to create transaction at all. Now try to find same transaction but with smaller bills.
-            if (useSmallerBills)
+            var transaction = new Dictionary<CashNominal, uint>();
+            var remainingAmountToWithdraw = requestedAmount;
+
+            while (remainingAmountToWithdraw > 0)
             {
-                TryUseSmallerBills(transaction);
+                var nominal = sums[remainingAmountToWithdraw];
+                var nominal2 = (CashNominal)nominal;
+                
+                transaction.TryAdd(nominal2, 0);
+                
+                ++transaction[nominal2];
+                --StoredCash[nominal2];
+
+                remainingAmountToWithdraw -= nominal;
             }
 
-            //apply transaction at full
-            foreach (var (nominal, count) in transaction)
-            {
-                StoredCash[nominal] -= count;
-            }
-            //transaction was successful
             return (true, transaction);
         }
 
@@ -163,6 +164,11 @@
             }
             
             return true;
+        }
+
+        public static uint TransactionTotal(Dictionary<CashNominal, uint> transaction)
+        {
+            return transaction.Aggregate(0u, (u, nominalCount) => u + (uint)nominalCount.Key * nominalCount.Value);
         }
     }
 }
