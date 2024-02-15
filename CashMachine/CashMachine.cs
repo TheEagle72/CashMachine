@@ -54,47 +54,47 @@
         {
             if (requestedAmount == 0) { return (false, null); }
 
-            //Dynamic programming. Knapsack problem.
-            //Naive implementation - we got a lot of extra same numbers
-            //todo replace with dict with counts
-            var sums = new Dictionary<uint, uint>();
-            var aList = new List<CashNominal>();
+            //Dynamic programming. Knapsack problem
+            var sums = new Dictionary<uint, uint> { { 0, 0 } };
             
-            foreach (var (nominal,count) in useSmallerBills ? StoredCash : StoredCash.Reverse())
+            var newSums = new Dictionary<uint, uint>();
+            var solutionFound = false;
+            foreach (var (nominal, count) in StoredCash)
             {
-                for (int i = 0; i < count; i++)
-                {
-                    aList.Add(nominal);
-                }
-            }
-
-            sums.Add(0, 0);
-            foreach (uint value in aList)
-            {
-                var newSums = new Dictionary<uint, uint>();
-                foreach (var sum in sums.Keys)
-                {
-                    var newSum = sum + value;
-
-                    if (newSum > requestedAmount)
-                    {
-                        continue;
-                    }
-
-                    if (!sums.ContainsKey(newSum))
-                    {
-                        newSums[newSum] = value;
-                    }
-                }
-
-                foreach (var (key, val) in newSums)
-                {
-                    sums.Add(key, val);
-                }
-
-                if (sums.ContainsKey(requestedAmount))
+                if (solutionFound)
                 {
                     break;
+                }
+
+                var value = (uint)nominal;
+                for (var i = 0; i < count; i++)
+                {
+                    foreach (var sum in sums.Keys)
+                    {
+                        var newSum = sum + value;
+
+                        if (newSum > requestedAmount)
+                        {
+                            continue;
+                        }
+
+                        if (!sums.ContainsKey(newSum))
+                        {
+                            newSums[newSum] = value;
+                        }
+                    }
+
+                    foreach (var (key, val) in newSums)
+                    {
+                        sums.Add(key, val);
+                    }
+                    newSums.Clear();
+
+                    if (sums.ContainsKey(requestedAmount))
+                    {
+                        solutionFound = true;
+                        break;
+                    }
                 }
             }
 
@@ -108,15 +108,14 @@
 
             while (remainingAmountToWithdraw > 0)
             {
-                var nominal = sums[remainingAmountToWithdraw];
-                var nominal2 = (CashNominal)nominal;
+                var nominal = (CashNominal)sums[remainingAmountToWithdraw];
                 
-                transaction.TryAdd(nominal2, 0);
+                transaction.TryAdd(nominal, 0);
                 
-                ++transaction[nominal2];
-                --StoredCash[nominal2];
+                ++transaction[nominal];
+                --StoredCash[nominal];
 
-                remainingAmountToWithdraw -= nominal;
+                remainingAmountToWithdraw -= (uint)nominal;
             }
 
             return (true, transaction);
@@ -171,4 +170,4 @@
             return transaction.Aggregate(0u, (u, nominalCount) => u + (uint)nominalCount.Key * nominalCount.Value);
         }
     }
-}
+} 
