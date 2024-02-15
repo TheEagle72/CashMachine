@@ -162,13 +162,14 @@ namespace CashMachineTest
             Assert.True(cashMachine.StoredCash.ContainsKey(nominal2));
             
             var transaction = new Dictionary<CashNominal, uint> { { nominal1, count1 }, { nominal2, count2 } };
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < midIterCount; i++)
             {
                 Assert.True(cashMachine.DepositStackOfMoney(transaction));
                 Assert.AreEqual(cashMachine.StoredCash[nominal1], count1 * (i + 1));
                 Assert.AreEqual(cashMachine.StoredCash[nominal2], count2 * (i + 1));
                 Assert.AreEqual((uint)nominal1 * (i + 1) * count1 + (uint)nominal2 * (i + 1) * count2, cashMachine.TotalStoredCash);
             }
+            Assert.AreEqual(CashMachine.TransactionTotal(transaction)* midIterCount, cashMachine.TotalStoredCash);
         }
 
         [TestCase(10u)]
@@ -294,11 +295,11 @@ namespace CashMachineTest
         [TestCase(20u)]
         [TestCase(100u)]
         [TestCase(1000u)]
-        public void WithdrawValidAllSmallBills(uint cashAmount)
+        public void WithdrawValidAllSmallBills(uint requestedAmount)
         {
             var nominal = CashNominal._1000;
 
-            var moreCash = cashAmount * smallIterCount;
+            var moreCash = requestedAmount * smallIterCount;
             var cashMachine = new CashMachine(FillSameCapacities(moreCash));
             Assert.IsNotNull(cashMachine);
             Assert.AreEqual(0, cashMachine.TotalStoredCash);
@@ -309,12 +310,14 @@ namespace CashMachineTest
 
             for (int i = 0; i < smallIterCount; i++)
             {
-                var (result, transaction) = cashMachine.Withdraw((uint)nominal*cashAmount, useSmallerBills: true);
+                var (result, transaction) = cashMachine.Withdraw((uint)nominal*requestedAmount, useSmallerBills: true);
                 Assert.True(result);
                 Assert.IsNotNull(transaction);
-                Assert.AreEqual(cashAmount*(smallIterCount-i-1), cashMachine.StoredCash[nominal]);
-                Assert.AreEqual(cashAmount * (smallIterCount - i-1)*(uint)nominal, cashMachine.TotalStoredCash);
+                Assert.AreEqual(requestedAmount*(smallIterCount-i-1), cashMachine.StoredCash[nominal]);
+                Assert.AreEqual(requestedAmount * (smallIterCount - i-1)*(uint)nominal, cashMachine.TotalStoredCash);
             }
+
+            Assert.AreEqual(0u, cashMachine.TotalStoredCash);
         }
         
         [TestCase(1u)]
@@ -322,7 +325,7 @@ namespace CashMachineTest
         [TestCase(20u)]
         [TestCase(100u)]
         [TestCase(1000u)]
-        public void WithdrawValidSmallBills(uint cashAmount)
+        public void WithdrawValidSmallBills(uint requestedAmount)
         {
             var nominal1 = CashNominal._5000;
             var nominal2 = CashNominal._1000;
@@ -339,9 +342,9 @@ namespace CashMachineTest
 
             var stackOfMoney = new Dictionary<CashNominal, uint>
             {
-                { nominal1, cashAmount*10 },
-                { nominal2, cashAmount*10 },
-                { nominal3, cashAmount*10 },
+                { nominal1, requestedAmount*10 },
+                { nominal2, requestedAmount*10 },
+                { nominal3, requestedAmount*10 },
             };
 
             Assert.True(cashMachine1.DepositStackOfMoney(stackOfMoney));
@@ -357,10 +360,15 @@ namespace CashMachineTest
             Assert.True(result2);
             Assert.IsNotNull(transaction2);
             Assert.AreEqual(cashMachine1.TotalStoredCash, cashMachine2.TotalStoredCash);
+
+            Assert.AreEqual(requiredAmount, CashMachine.TransactionTotal(transaction1));
+            Assert.AreEqual(requiredAmount, CashMachine.TransactionTotal(transaction2));
         }
 
         [TestCase(8000u, 5000u, 1u, 2000u, 4u)]
-        public void WithdrawValidNotCompletelyDivisible(uint requiredAmount, uint nominal1, uint count1, uint nominal2, uint count2)
+        [TestCase(15000u, 5000u, 2u, 1000u, 10u)]
+        [TestCase(11000u, 5000u, 1u, 2000u, 10u)]
+        public void WithdrawValidNotCompletelyDivisible(uint requestedAmount, uint nominal1, uint count1, uint nominal2, uint count2)
         {
             var cashMachine = new CashMachine(FillSameCapacities(1000u));
 
@@ -372,18 +380,38 @@ namespace CashMachineTest
 
             Assert.True(cashMachine.DepositStackOfMoney(stackOfMoney));
 
-            var (result1, transaction) = cashMachine.Withdraw(requiredAmount);
-
-            
-            
+            var (result1, transaction) = cashMachine.Withdraw(requestedAmount);
 
             Assert.True(result1);
             Assert.IsNotNull(transaction);
 
-            Assert.AreEqual(requiredAmount, CashMachine.TransactionTotal(transaction));
+            Assert.AreEqual(requestedAmount, CashMachine.TransactionTotal(transaction));
 
             Assert.LessOrEqual(transaction.ContainsKey((CashNominal)nominal1) ? transaction[(CashNominal)nominal1] : 0u, count1);
             Assert.LessOrEqual(transaction.ContainsKey((CashNominal)nominal2) ? transaction[(CashNominal)nominal2] : 0u, count2);
+        }
+
+        [TestCase(6000u, 5000u, 1u, 2000u, 1u)]
+        [TestCase(12000u, 5000u, 1u, 2000u, 5u)]
+        public void WithdrawalImpossibleWithStoredBills(uint requestedAmount, uint nominal1, uint count1, uint nominal2,
+            uint count2)
+        {
+            var cashMachine = new CashMachine(FillSameCapacities(1000u));
+
+            var stackOfMoney = new Dictionary<CashNominal, uint>
+            {
+                { (CashNominal)nominal1, count1 },
+                { (CashNominal)nominal2, count2 },
+            };
+
+            Assert.LessOrEqual(requestedAmount, CashMachine.TransactionTotal(stackOfMoney));
+
+            Assert.True(cashMachine.DepositStackOfMoney(stackOfMoney));
+
+            var (result1, transaction) = cashMachine.Withdraw(requestedAmount);
+
+            Assert.False(result1);
+            Assert.IsNull(transaction);
         }
     }
 }
