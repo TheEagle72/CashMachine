@@ -16,7 +16,7 @@
         </Grid.RowDefinitions>
         <Expander HorizontalAlignment="Center" Height="192" Header="Подробно" VerticalAlignment="Center" Width="280" Grid.Row="1" IsExpanded="True">
             <DataGrid x:Name="UiDataGrid_BalanceDetailed"
-                      ItemsSource="{Binding CashStoredObserver}" AutoGenerateColumns="False" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False">
+                      ItemsSource="{Binding CashStoredObserver}" AutoGenerateColumns="False" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionMode="Single">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Номинал" Binding="{Binding Nominal}" IsReadOnly="True" Width="*" />
                     <DataGridTextColumn Header="Количество" Binding="{Binding Amount}" IsReadOnly="True" Width="*" />
@@ -32,7 +32,7 @@
                 <RowDefinition Height="25*"/>
             </Grid.RowDefinitions>
             <Label Content="Внести деньги:" Height="30" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontWeight="Bold"/>
-            <DataGrid x:Name="UiDataGrid_DepositCashTable" ItemsSource="{Binding CashDepositObserver, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="113" Width="NaN" VerticalAlignment="Top" Margin="0,32,0,0" Grid.RowSpan="2" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" AutoGenerateColumns="False">
+            <DataGrid x:Name="UiDataGrid_DepositCashTable" ItemsSource="{Binding CashDepositObserver, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="113" Width="NaN" VerticalAlignment="Top" Margin="0,32,0,0" Grid.RowSpan="2" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" AutoGenerateColumns="False" SelectionMode="Single">
             <DataGrid.Columns>
                     <DataGridTextColumn Header="Номинал" Binding="{Binding Nominal}" IsReadOnly="True" Width="*" />
                     <DataGridTemplateColumn Header="Количество" Width="*">
