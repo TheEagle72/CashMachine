@@ -151,10 +151,9 @@ namespace CashMachineUi
                 MessageBox.Show("Недостаточно места в бакномате", "Операция отменена!");
                 return;
             }
-            var total = transaction.Aggregate(0u, (u, nominalAndAmount) => u + (nominalAndAmount.Value * (uint)nominalAndAmount.Key));
             UiChangeOperation(CashMachineUiOperation.UiSelect);
             UpdateCashStoredUi();
-            MessageBox.Show($"Успешно зачислено {total}", "Операция успешно завершена!");
+            MessageBox.Show($"Успешно зачислено {CashMachine.TransactionTotal(transaction)}", "Операция успешно завершена!");
         }
 
         private void UiButton_DepositCashCancel_Click(object sender, RoutedEventArgs e)
