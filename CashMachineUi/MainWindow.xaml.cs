@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -82,9 +81,9 @@ namespace CashMachineUi
             UiChangeOperation(CashMachineUiOperation.UiDeposit);
 
             CashDepositObserver.Clear();
-            foreach (var (key, val) in _cashMachine.StoredCash)
+            foreach (var nominal in _cashMachine.StoredCash.Keys)
             {
-                CashDepositObserver.Add(new PairNominalAmount((uint)key, 0));
+                CashDepositObserver.Add(new PairNominalAmount((uint)nominal, 0));
             }
         }
 
@@ -168,7 +167,7 @@ namespace CashMachineUi
         }
 
 
-        private bool _useSmallerBills = false;
+        private bool _useSmallerBills;
         private void UiRadioButton_WithdrawCashLargeBills_Checked(object sender, RoutedEventArgs e)
         {
             _useSmallerBills = false;
@@ -196,7 +195,6 @@ namespace CashMachineUi
             _nominal = nominal;
             _amount = amount;
         }
-
 
         public uint Amount
         {
